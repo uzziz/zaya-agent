@@ -1,0 +1,4 @@
+[console_scripts]
+zaya = zaya_cli.main:main
+zaya-acp = acp_adapter.entry:main
+zaya-agent = run_agent:main

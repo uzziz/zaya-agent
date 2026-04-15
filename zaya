@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""Zaya Agent CLI"""
+import sys
+import os
+
+# Add the package directory to sys.path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from zaya_cli.main import main
+
+if __name__ == "__main__":
+    main()
