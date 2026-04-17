@@ -45,8 +45,7 @@ ask_toggle() {
 log_info "Let's set up the Zaya Agent pilot."
 
 VPS_REGION=$(prompt "VPS provider region" "hostinger-europe")
-DOMAIN=$(prompt "Domain (e.g., xailabs.ai, leave empty to skip)" "")
-CLIENT_ID=$(ask_nonempty "Client Telegram ID (e.g., 8461682030:AAF12rf5s5Hzde4UMBko129L2KjHNCpSHrU)")
+CLIENT_ID=$(ask_nonempty "Client Telegram ID (e.g., 8461682030)")
 OPENROUTER_KEY=$(ask_nonempty "OpenRouter API key")
 BOT_TOKEN=$(ask_nonempty "Telegram bot token")
 ACCEPTABLE_PRICE=$(prompt "Acceptable hourly price (optional)" "")
