@@ -125,7 +125,7 @@ services:
     env_file: $ZAYA_DIR/.env
     volumes:
       - $ZAYA_DIR/data:/opt/data
-    command: python -m gateway.run
+    command: gateway
 EOF
 log_info "Wrote docker-compose.yml to $ZAYA_DIR/docker-compose.yml"
 
