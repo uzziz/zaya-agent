@@ -81,7 +81,8 @@ fi
 cat > "$ZAYA_DIR/.env" << ENVEOF
 OPENROUTER_API_KEY=$OPENROUTER_KEY
 TELEGRAM_BOT_TOKEN=$BOT_TOKEN
-CLIENT_ID=$CLIENT_ID
+TELEGRAM_ALLOWED_USERS=$CLIENT_ID
+GATEWAY_ALLOWED_USERS=$CLIENT_ID
 ACCEPTABLE_PRICE=${ACCEPTABLE_PRICE:-}
 ENVEOF
 chmod 600 "$ZAYA_DIR/.env"
@@ -98,7 +99,7 @@ services:
     env_file: $ZAYA_DIR/.env
     volumes:
       - $ZAYA_DIR/data:/opt/data
-    command: gateway
+    command: ["gateway", "run"]
 EOF
 log_info "Wrote docker-compose.yml to $ZAYA_DIR/docker-compose.yml"
 
