@@ -38,7 +38,7 @@ log_info "Let's set up Zaya Agent on your VPS."
 VPS_REGION=$(prompt "VPS provider region" "hostinger-europe")
 CLIENT_ID=$(ask_nonempty "Client Telegram ID (get it from https://t.me/userinfobot)")
 OPENROUTER_KEY=$(ask_nonempty "OpenRouter API key")
-BOT_TOKEN=$(ask_nonempty "Telegram bot token (from @BotFather)")
+BOT_TOKEN=$(ask_nonempty "Telegram bot token (from @BotFather, format: 123456789:ABC...)")
 ACCEPTABLE_PRICE=$(prompt "Acceptable hourly price" "")
 
 # ---- 2) Prerequisites ----
@@ -78,12 +78,12 @@ if $MISSING_INSTALLER; then
 fi
 
 # ---- 3) Write .env ----
-cat > "$ZAYA_DIR/.env" << EOF
+cat > "$ZAYA_DIR/.env" << ENVEOF
 OPENROUTER_API_KEY=$OPENROUTER_KEY
 TELEGRAM_BOT_TOKEN=$BOT_TOKEN
 CLIENT_ID=$CLIENT_ID
 ACCEPTABLE_PRICE=${ACCEPTABLE_PRICE:-}
-EOF
+ENVEOF
 chmod 600 "$ZAYA_DIR/.env"
 log_info "Saved .env to $ZAYA_DIR/.env"
 
