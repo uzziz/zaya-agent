@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Zaya Agent — beginner-friendly one-command installer
-# Run: bash setup.sh
 set -euo pipefail
 
 GREEN='\033[0;32m'
@@ -15,17 +14,17 @@ mkdir -p "$ZAYA_DIR" "$DATA_DIR"
 
 # ---- helpers ----
 prompt() {
-  local prompt="$1"
+  local prompt_text="$1"
   local default="$2"
-  read -r -p "$prompt [$default]: " input
+  read -r -p "$prompt_text [$default]: " input
   echo "${input:-$default}"
 }
 
 ask_nonempty() {
-  local prompt="$1"
+  local prompt_text="$1"
   local val=""
   while [[ -z "$val" ]]; do
-    val=$(prompt "$prompt" "")
+    read -r -p "$prompt_text: " val
     if [[ -z "$val" ]]; then
       log_warn "This field is required."
     fi
@@ -33,87 +32,62 @@ ask_nonempty() {
   echo "$val"
 }
 
-ask_toggle() {
-  local prompt="$1"
-  local default="${2:-y}"
-  read -r -p "$prompt (y/N): " input
-  : "${input:-$default}"
-  [[ "$input" =~ ^[Yy]$ ]] && echo y || echo n
-}
-
 # ---- 1) Collect inputs ----
-log_info "Let's set up the Zaya Agent pilot."
+log_info "Let's set up Zaya Agent on your VPS."
 
 VPS_REGION=$(prompt "VPS provider region" "hostinger-europe")
-CLIENT_ID=$(ask_nonempty "Client Telegram ID (e.g., 8461682030)")
+CLIENT_ID=$(ask_nonempty "Client Telegram ID (get it from https://t.me/userinfobot)")
 OPENROUTER_KEY=$(ask_nonempty "OpenRouter API key")
-BOT_TOKEN=$(ask_nonempty "Telegram bot token")
-ACCEPTABLE_PRICE=$(prompt "Acceptable hourly price (optional)" "")
+BOT_TOKEN=$(ask_nonempty "Telegram bot token (from @BotFather)")
+ACCEPTABLE_PRICE=$(prompt "Acceptable hourly price" "")
 
 # ---- 2) Prerequisites ----
 log_info "Checking prerequisites..."
 MISSING_INSTALLER=false
 if ! command -v docker &>/dev/null; then
-  log_warn "Docker not found. We'll install it for you."
+  log_warn "Docker not found. Installing now..."
   MISSING_INSTALLER=true
 fi
-if ! command -v docker-compose &>/dev/null && ! docker compose version &>/dev/null; then
-  log_warn "docker-compose (or docker compose) not found. We'll install it."
+if ! command -v docker compose &>/dev/null; then
+  log_warn "docker compose not found. Installing Docker..."
   MISSING_INSTALLER=true
 fi
 
 if $MISSING_INSTALLER; then
   echo ""
-  log_info "We'll install Docker and docker-compose. This requires sudo."
+  log_info "Installing Docker. This requires sudo."
   if [[ "$EUID" -ne 0 ]]; then
-    read -r -p "Run installation commands with sudo now? (y/N): " run_sudo
+    read -r -p "Run with sudo? (y/N): " run_sudo
     if [[ "$run_sudo" =~ ^[Yy]$ ]]; then
       sudo bash -c "
-        apt-get update && apt-get install -y \
-          ca-certificates curl gnupg lsb-release \
-        && install -m 0755 -d /etc/apt/keyrings \
-        && curl -fsSL https://download.docker.com/linux/\$(. /etc/os-release && echo \$ID)/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-        && echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/\$(. /etc/os-release && echo \$ID) \$(. /etc/os-release && echo \$VERSION_CODENAME) stable\" > /etc/apt/sources.list.d/docker.list \
-        && apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
-        && usermod -aG docker \$(whoami) && newgrp docker
-      " || log_warn "Docker installation failed. Please install Docker and docker-compose manually."
-    else
-      log_warn "Skipping Docker install. Please install Docker and docker-compose manually to continue."
+        apt-get update && apt-get install -y ca-certificates curl gnupg lsb-release
+        && install -m 0755 -d /etc/apt/keyrings
+        && curl -fsSL https://download.docker.com/linux/\$(. /etc/os-release && echo \$ID)/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        && echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/\$(. /etc/os-release && echo \$ID) \$(. /etc/os-release && echo \$VERSION_CODENAME) stable\" > /etc/apt/sources.list.d/docker.list
+        && apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      " || log_warn "Docker installation failed. Please install Docker manually."
     fi
   else
-    log_warn "Please install Docker and docker-compose manually, then re-run this script."
+    apt-get update && apt-get install -y ca-certificates curl gnupg lsb-release
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/$(. /etc/os-release && echo $ID)/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release && echo $ID) $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+    apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   fi
   echo ""
 fi
 
-# ---- 3) Optional DNS check ----
-if ask_toggle "Check DNS resolution for $DOMAIN" "n"; then
-  if command -v curl &>/dev/null; then
-    IP=$(curl -s "http://ip-api.com/json/" | python3 -c "import sys,json; print(json.load(sys.stdin).get('query',''))" 2>/dev/null || echo "unknown")
-    echo "Your public IP appears to be: $IP"
-    RESOLVED=$(curl -s "http://$DOMAIN/" --max-time 5 -o /dev/null -w "%{http_code}" 2>/dev/null || echo "ERR")
-    if [[ "$RESOLVED" == "000" ]]; then
-      log_warn "Could not reach $DOMAIN. Make sure DNS points to this VPS."
-    else
-      log_info "$DOMAIN resolved and responded with HTTP $RESOLVED."
-    fi
-  else
-    log_warn "curl not installed; skipping DNS check."
-  fi
-fi
-
-# ---- 4) Write .env ----
+# ---- 3) Write .env ----
 cat > "$ZAYA_DIR/.env" << EOF
 OPENROUTER_API_KEY=$OPENROUTER_KEY
 TELEGRAM_BOT_TOKEN=$BOT_TOKEN
-DOMAIN=$DOMAIN
 CLIENT_ID=$CLIENT_ID
 ACCEPTABLE_PRICE=${ACCEPTABLE_PRICE:-}
 EOF
 chmod 600 "$ZAYA_DIR/.env"
 log_info "Saved .env to $ZAYA_DIR/.env"
 
-# ---- 5) Write docker-compose.yml ----
+# ---- 4) Write docker-compose.yml ----
 cat > "$ZAYA_DIR/docker-compose.yml" << EOF
 version: "3.8"
 services:
@@ -128,10 +102,10 @@ services:
 EOF
 log_info "Wrote docker-compose.yml to $ZAYA_DIR/docker-compose.yml"
 
-# ---- 6) Write systemd unit ----
+# ---- 5) Write systemd unit ----
 cat > /etc/systemd/system/zaya-engine.service << EOF
 [Unit]
-Description=Zaya Engine (pilot)
+Description=Zaya Agent Engine
 After=docker.service
 Requires=docker.service
 
@@ -139,9 +113,9 @@ Requires=docker.service
 Restart=always
 RestartSec=5
 EnvironmentFile=$ZAYA_DIR/.env
-ExecStartPre=-/usr/bin/docker compose --project-name zaya-pilot -f $ZAYA_DIR/docker-compose.yml down
-ExecStart=/usr/bin/docker compose --project-name zaya-pilot -f $ZAYA_DIR/docker-compose.yml up
-ExecStopPost=-/usr/bin/docker compose --project-name zaya-pilot -f $ZAYA_DIR/docker-compose.yml down
+ExecStartPre=-/usr/bin/docker compose --project-name zaya -f $ZAYA_DIR/docker-compose.yml down
+ExecStart=/usr/bin/docker compose --project-name zaya -f $ZAYA_DIR/docker-compose.yml up
+ExecStopPost=-/usr/bin/docker compose --project-name zaya -f $ZAYA_DIR/docker-compose.yml down
 WorkingDirectory=$ZAYA_DIR
 
 [Install]
@@ -152,29 +126,22 @@ systemctl daemon-reload
 systemctl enable --now zaya-engine
 log_info "Service enabled and started."
 
-# ---- 7) Verify ----
+# ---- 6) Verify ----
 sleep 5
-if curl -s -o /dev/null -w "%{http_code}" "http://$DOMAIN/health" 2>/dev/null | grep -q "200\|301\|302\|404"; then
-  log_info "Health check returned HTTP $(curl -s -o /dev/null -w "%{http_code}" "http://$DOMAIN/health" 2>/dev/null)."
+log_info "Checking service status..."
+if systemctl is-active --quiet zaya-engine; then
+  log_info "Zaya Agent is running!"
 else
-  log_warn "Health endpoint not reachable yet. Check logs with: journalctl -u zaya-engine -f"
+  log_warn "Service may not have started. Check logs with: journalctl -u zaya-engine -f"
 fi
-log_info "Logs: journalctl -u zaya-engine -f"
 
-# ---- 8) Final instructions ----
 echo ""
 echo "========================================"
 echo -e "${GREEN}Setup complete!${NC}"
 echo "========================================"
-echo "Share this one-liner with Jacoby:"
-echo -e "${YELLOW}bash setup.sh${NC}"
 echo ""
-echo "Then verify:"
-echo "  curl -sI http://$DOMAIN/health"
+echo "Check logs:"
 echo "  journalctl -u zaya-engine -f"
 echo ""
-echo "Next steps:"
-echo "  - Set DNS for $DOMAIN to point to this VPS."
-echo "  - Ensure OPENROUTER_API_KEY and TELEGRAM_BOT_TOKEN are valid."
-echo "  - Allowlist client Telegram ID: $CLIENT_ID"
+echo "Test your bot on Telegram — send it a message."
 echo "========================================"
