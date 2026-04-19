@@ -45,6 +45,13 @@ from pathlib import Path
 
 from zaya_constants import get_zaya_home
 
+# Empathy Engine — Layer 6: Subtext Inference
+try:
+    from agent.empathy_engine import EmpathyEngine, DissonanceLevel
+    _empathy_engine = EmpathyEngine()
+except Exception:
+    _empathy_engine = None
+
 # Load .env from ~/.zaya/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
 from zaya_cli.env_loader import load_zaya_dotenv
@@ -7945,6 +7952,30 @@ class AIAgent:
         if not self.quiet_mode:
             self._safe_print(f"💬 Starting conversation: '{user_message[:60]}{'...' if len(user_message) > 60 else ''}'")
         
+        # ── Empathy Engine — Layer 6: Subtext Inference ──
+        # Run dissonance detection on the full message history.
+        # Inject empathic guidance into the conversation if gap is detected.
+        if _empathy_engine is not None and len(messages) > 1:
+            try:
+                _profile, _calibration = _empathy_engine.full_read(messages)
+                if _profile.dissonance.dissonance_level in (
+                    DissonanceLevel.HIGH, DissonanceLevel.CRISIS
+                ):
+                    _empathy_msg = {
+                        "role": "system",
+                        "content": (
+                            f"[EMPATHY READ] The user's surface message may not reflect "
+                            f"their true state. Inferred: {_profile.dissonance.inferred_state.value}. "
+                            f"Subtext: {_profile.dissonance.subtext} "
+                            f"Recommended tone: {_calibration.response_tone}. "
+                            f"Boundary setting: {'respect boundaries' if _calibration.boundary_setting_ok else 'careful — boundaries may be unclear'}. "
+                            f"Adjust your response accordingly."
+                        )
+                    }
+                    messages.insert(1, _empathy_msg)
+            except Exception:
+                pass
+
         # ── System prompt (cached per session for prefix caching) ──
         # Built once on first call, reused for all subsequent calls.
         # Only rebuilt after context compression events (which invalidate
