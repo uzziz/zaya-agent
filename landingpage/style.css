@@ -1,6 +1,6 @@
 /* =========================================================================
    Zaya Agent Landing Page
-   Colors: Nous Blue (#3050FF) palette
+   Colors: Xia Labs Teal (#00D4AA) / Gold (#FFD700) palette
    ========================================================================= */
 
 /* --- Reset & Base --- */
@@ -162,12 +162,6 @@ strong {
     transition: color 0.2s var(--ease-out-quad);
 }
 .nav-logo:hover { color: var(--primary-light); }
-
-.nav-nous-logo {
-    width: 22px;
-    height: 22px;
-    border-radius: 4px;
-}
 
 .nav-by {
     font-weight: 400;

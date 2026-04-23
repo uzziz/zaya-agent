@@ -1399,7 +1399,7 @@ ZAYA_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀�
 
 
 def _build_compact_banner() -> str:
-    """Build a compact banner that fits the current terminal width."""
+    """Build a compact banner that fits the current terminal width but still shows tools + commands."""
     try:
         from zaya_cli.skin_engine import get_active_skin
         _skin = get_active_skin()
@@ -1410,35 +1410,127 @@ def _build_compact_banner() -> str:
     border_color = _skin.get_color("banner_border", "#FFD700") if _skin else "#FFD700"
     title_color = _skin.get_color("banner_title", "#FFBF00") if _skin else "#FFBF00"
     dim_color = _skin.get_color("banner_dim", "#B8860B") if _skin else "#B8860B"
+    accent_color = _skin.get_color("banner_accent", "#00CED1") if _skin else "#00CED1"
 
-    if skin_name == "default":
-        line1 = "⚕ ZAYA - AI Agent Framework"
-        tiny_line = "⚕ ZAYA"
-    else:
-        agent_name = _skin.get_branding("agent_name", "Zaya Agent") if _skin else "Zaya Agent"
-        line1 = f"{agent_name} - AI Agent Framework"
-        tiny_line = agent_name
-
+    agent_name = _skin.get_branding("agent_name", "Zaya Agent") if _skin else "Zaya Agent"
     version_line = format_banner_version_label()
-
     w = min(shutil.get_terminal_size().columns - 2, 88)
-    if w < 30:
-        return f"\n[{title_color}]{tiny_line}[/] [dim {dim_color}]- Xia Labs[/]\n"
 
-    inner = w - 2  # inside the box border
+    if w < 50:
+        # Ultra-minimal for very narrow terminals
+        return (
+            f"\n"
+            f"[bold {title_color}]◉ {agent_name}[/] [dim {dim_color}]by Xia Labs[/]\n"
+            f"[dim {dim_color}]{version_line}[/]\n"
+        )
+
+    # Build a two-column layout: left=info, right=tools+commands
+    inner = w - 2
     bar = "═" * w
-    content_width = inner - 2
 
-    # Truncate and pad to fit
-    line1 = line1[:content_width].ljust(content_width)
-    line2 = version_line[:content_width].ljust(content_width)
+    # Left panel info
+    model_short = ""
+    try:
+        from zaya_cli.auth import load_cli_config
+        cfg = load_cli_config()
+        model = cfg.get("model", "not set")
+        model_short = model.split("/")[-1] if "/" in model else model
+        if len(model_short) > 22:
+            model_short = model_short[:19] + "..."
+    except Exception:
+        model_short = "not configured"
 
-    return (
-        f"\n[bold {border_color}]╔{bar}╗[/]\n"
-        f"[bold {border_color}]║[/] [{title_color}]{line1}[/] [bold {border_color}]║[/]\n"
-        f"[bold {border_color}]║[/] [dim {dim_color}]{line2}[/] [bold {border_color}]║[/]\n"
-        f"[bold {border_color}]╚{bar}╝[/]\n"
-    )
+    provider_short = ""
+    try:
+        provider_short = cfg.get("provider", "openrouter") if 'cfg' in dir() else "openrouter"
+    except Exception:
+        provider_short = "openrouter"
+
+    # Right panel: key slash commands
+    key_cmds = [
+        ("/help", "See all commands"),
+        ("/model", "Switch model"),
+        ("/tools", "Show available tools"),
+        ("/skills", "Browse/install skills"),
+        ("/new", "Start fresh conversation"),
+        ("/compress", "Compact context"),
+        ("/retry", "Retry last response"),
+        ("/gateway", "Start messaging gateway"),
+    ]
+
+    # How many commands fit per column
+    col_width = max(len(f"/{c[0]}") for c in key_cmds) + 2
+    cols = max(1, (inner - 2) // (col_width + 18))
+    cmd_rows = []
+    for i in range(0, len(key_cmds), cols):
+        row_cmds = key_cmds[i:i+cols]
+        row_strs = []
+        for cmd, desc in row_cmds:
+            row_strs.append(f"[bold {accent_color}]{cmd:<{col_width}}[/][dim {dim_color}]{desc}[/]")
+        cmd_rows.append("  " + "   ".join(row_strs))
+
+    # Left info block
+    left_info = [
+        f"[bold {title_color}]{agent_name}[/] [dim {dim_color}]by Xia Labs[/]",
+        f"[dim {dim_color}]{version_line}[/]",
+        "",
+        f"[dim {dim_color}]model:[/] [{accent_color}]{model_short}[/]",
+        f"[dim {dim_color}]provider:[/] [{accent_color}]{provider_short}[/]",
+        "",
+        f"[bold {accent_color}]Slash Commands:[/]",
+    ]
+
+    # Assemble
+    lines = [""]
+    lines.append(f"[bold {border_color}]╔{bar}╗[/]")
+    lines.append(f"[bold {border_color}]║[/] [bold {title_color}]{agent_name}[/] [dim {dim_color}]v1.0.0 by Xia Labs[/][bold {border_color}]" + " " * max(0, inner - len(agent_name) - 22) + "║[/]")
+    lines.append(f"[bold {border_color}]║[/] [dim {dim_color}]model:[/] [{accent_color}]{model_short}[/]  [dim {dim_color}]provider:[/] [{accent_color}]{provider_short}[/]" + " " * max(0, inner - 50) + "[bold {border_color}]║[/]")
+    lines.append(f"[bold {border_color}]╠{bar}╣[/]")
+
+    # Commands section header
+    cmds_header = f"[bold {accent_color}]SLASH COMMANDS[/]"
+    lines.append(f"[bold {border_color}]║[/] {cmds_header}" + " " * max(0, inner - len("SLASH COMMANDS") - 1) + f"[bold {border_color}]║[/]")
+
+    for row in cmd_rows:
+        pad = max(0, inner - len(row) + len(row.lstrip()) - 1)
+        lines.append(f"[bold {border_color}]║[/] {row}" + " " * pad + f"[bold {border_color}]║[/]")
+
+    lines.append(f"[bold {border_color}]╠{bar}╣[/]")
+
+    # Tools section
+    tools_header = f"[bold {accent_color}]TOOLS[/]"
+    try:
+        from model_tools import get_toolset_for_tool, check_tool_availability
+        tools = get_tool_definitions(enabled_toolsets=None, quiet_mode=True)
+        _, unavailable = check_tool_availability(quiet=True)
+        toolsets_dict: Dict[str, list] = {}
+        for tool in tools:
+            tname = tool["function"]["name"]
+            ts = get_toolset_for_tool(tname) or "other"
+            toolsets_dict.setdefault(ts, []).append(tname)
+        for ts_item in unavailable:
+            ts_name = ts_item.get("name", "unknown")
+            toolsets_dict.setdefault(ts_name, [])
+        # Show top 6 toolsets
+        sorted_ts = sorted(toolsets_dict.keys())[:6]
+        tool_lines = []
+        for ts_name in sorted_ts:
+            tnames = sorted(toolsets_dict[ts_name])
+            t_str = ", ".join(tnames[:6])
+            if len(tnames) > 6:
+                t_str += f" (+{len(tnames)-6} more)"
+            tool_lines.append(f"  [dim {dim_color}]{ts_name}:[/] [{accent_color}]{t_str}[/]")
+        if tool_lines:
+            lines.append(f"[bold {border_color}]║[/] {tools_header}" + " " * max(0, inner - len("TOOLS") - 1) + f"[bold {border_color}]║[/]")
+            for tline in tool_lines:
+                pad = max(0, inner - len(tline) - 2)
+                lines.append(f"[bold {border_color}]║[/]{tline}" + " " * pad + f"[bold {border_color}]║[/]")
+    except Exception:
+        pass
+
+    lines.append(f"[bold {border_color}]╚{bar}╝[/]")
+
+    return "\n".join(lines)
 
 
 
@@ -2955,7 +3047,6 @@ class ZayaCLI:
         
         if use_compact:
             self.console.print(_build_compact_banner())
-            self._show_status()
         else:
             # Get tools for display
             tools = get_tool_definitions(enabled_toolsets=self.enabled_toolsets, quiet_mode=True)

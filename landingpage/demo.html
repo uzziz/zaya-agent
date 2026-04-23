@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zaya Agent — See It Think</title>
+  <meta name="description" content="Watch Zaya Agent reason, plan, and execute — live." />
+  <meta property="og:title" content="Zaya Agent — See It Think" />
+  <meta property="og:description" content="Watch Zaya Agent reason, plan, and execute — live." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050810;
+      --surface: #0c1220;
+      --surface2: #111827;
+      --border: #1e2d4a;
+      --teal: #00d4aa;
+      --teal-dim: #00a888;
+      --gold: #ffd700;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --red: #f87171;
+      --green: #4ade80;
+      --blue: #60a5fa;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background ─────────────────────────────────────────────────────── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .bg-glow {
+      position: fixed; top: -40%; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 600px;
+      background: radial-gradient(ellipse, rgba(0,212,170,0.08) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      padding: 28px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .logo span { color: var(--teal); }
+    .badge {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase;
+      background: rgba(0,212,170,0.1);
+      color: var(--teal);
+      border: 1px solid rgba(0,212,170,0.25);
+      padding: 4px 10px; border-radius: 20px;
+    }
+
+    /* ── Hero ───────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 80px 0 40px; text-align: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--teal);
+      margin-bottom: 20px;
+    }
+    .hero-eyebrow::before, .hero-eyebrow::after {
+      content: ''; display: block; width: 24px; height: 1px;
+      background: var(--teal); opacity: 0.5;
+    }
+    h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700; letter-spacing: -2px; line-height: 1.05;
+      margin-bottom: 20px;
+    }
+    h1 .gradient {
+      background: linear-gradient(135deg, var(--teal) 0%, var(--gold) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 18px; color: var(--muted); max-width: 560px;
+      margin: 0 auto 40px; line-height: 1.6;
+    }
+
+    /* ── Playground Card ────────────────────────────────────────────────── */
+    .playground {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      margin: 40px 0 80px;
+    }
+
+    @media (max-width: 768px) {
+      .playground { grid-template-columns: 1fr; }
+    }
+
+    /* ── Scenario Picker ───────────────────────────────────────────────── */
+    .scenario-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      height: fit-content;
+    }
+    .panel-title {
+      font-size: 11px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .scenario-list { display: flex; flex-direction: column; gap: 8px; }
+    .scenario-btn {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      width: 100%;
+    }
+    .scenario-btn:hover {
+      border-color: var(--border);
+      background: rgba(0,212,170,0.05);
+    }
+    .scenario-btn.active {
+      border-color: var(--teal);
+      background: rgba(0,212,170,0.08);
+    }
+    .scenario-btn .emoji { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .scenario-btn .info {}
+    .scenario-btn .sc-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .scenario-btn .sc-desc { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .scenario-btn .sc-tools {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    }
+    .sc-tool-tag {
+      font-size: 10px; font-family: 'JetBrains Mono', monospace;
+      background: rgba(0,212,170,0.1); color: var(--teal-dim);
+      padding: 2px 6px; border-radius: 4px;
+    }
+
+    /* ── Demo Area ──────────────────────────────────────────────────────── */
+    .demo-area { display: flex; flex-direction: column; gap: 16px; }
+
+    .prompt-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .prompt-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .prompt-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .model-select {
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      background: var(--surface2); color: var(--gold);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 8px; cursor: pointer; outline: none;
+    }
+    .prompt-textarea {
+      width: 100%; min-height: 100px; resize: vertical;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+      color: var(--text); font-family: 'Inter', sans-serif;
+      font-size: 14px; line-height: 1.6;
+      outline: none; transition: border-color 0.15s;
+    }
+    .prompt-textarea:focus { border-color: var(--teal); }
+    .prompt-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+    .run-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 24px;
+      background: var(--teal); color: var(--bg);
+      font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
+      border: none; border-radius: 10px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .run-btn:hover { background: #00e8bb; transform: translateY(-1px); }
+    .run-btn:active { transform: translateY(0); }
+    .run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .run-btn.running { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .run-btn .spinner {
+      display: none; width: 14px; height: 14px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: var(--bg);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .run-btn.running .spinner { display: block; }
+    .run-btn.running .btn-text { display: none; }
+    .run-btn .running-text { display: none; }
+    .run-btn.running .running-text { display: inline; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Output Panel ───────────────────────────────────────────────────── */
+    .output-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      min-height: 400px;
+      display: flex; flex-direction: column;
+    }
+    .output-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .output-dots { display: flex; gap: 6px; }
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .dot.red { background: #ff5f57; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #28ca42; }
+    .output-title {
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: 8px;
+    }
+    .output-status {
+      margin-left: auto; font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+    }
+    .output-status.live { color: var(--green); }
+    .output-status.done { color: var(--teal); }
+    .output-status.idle { color: var(--muted); }
+
+    .output-body {
+      flex: 1; padding: 20px; overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; line-height: 1.7;
+    }
+
+    /* ── Output Items ───────────────────────────────────────────────────── */
+    .msg { margin-bottom: 16px; animation: fadeUp 0.3s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.thinking {
+      background: rgba(96,165,250,0.07);
+      border: 1px solid rgba(96,165,250,0.2);
+      border-radius: 10px; padding: 12px 16px;
+    }
+    .msg.thinking .msg-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--blue);
+      margin-bottom: 8px;
+    }
+    .thinking-dots {
+      display: inline-flex; gap: 3px;
+    }
+    .thinking-dots span {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--blue); opacity: 0.4;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+    .msg.thinking .msg-content { color: #93c5fd; }
+
+    .msg.tool-start {
+      background: rgba(251,191,36,0.07);
+      border: 1px solid rgba(251,191,36,0.2);
+      border-radius: 10px; padding: 12px 16px;
+    }
+    .msg.tool-start .msg-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .tool-icon { font-size: 14px; }
+    .msg.tool-start .msg-content { color: #fcd34d; }
+
+    .msg.tool-end {
+      background: rgba(74,222,128,0.07);
+      border: 1px solid rgba(74,222,128,0.2);
+      border-radius: 10px; padding: 12px 16px;
+      margin-left: 20px;
+    }
+    .msg.tool-end .msg-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--green);
+      margin-bottom: 8px;
+    }
+    .msg.tool-end .msg-content { color: #86efac; }
+
+    .msg.text { color: var(--text); padding: 0 4px; }
+    .msg.text p { margin-bottom: 10px; }
+    .msg.text p:last-child { margin-bottom: 0; }
+    .msg.text code {
+      background: rgba(0,212,170,0.1); color: var(--teal);
+      padding: 2px 6px; border-radius: 4px;
+      font-size: 12px;
+    }
+    .msg.text pre {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px;
+      overflow-x: auto; margin: 10px 0;
+    }
+    .msg.text pre code {
+      background: none; color: var(--text);
+      padding: 0; font-size: 12px;
+    }
+    .msg.text strong { color: var(--teal); font-weight: 600; }
+    .msg.text em { color: var(--gold); font-style: normal; }
+
+    .msg.done-msg {
+      text-align: center; padding: 20px;
+      color: var(--teal); font-size: 13px;
+    }
+    .msg.done-msg .done-icon { font-size: 28px; margin-bottom: 8px; }
+
+    .msg.error {
+      background: rgba(248,113,113,0.07);
+      border: 1px solid rgba(248,113,113,0.2);
+      border-radius: 10px; padding: 12px 16px;
+      color: var(--red);
+    }
+
+    .idle-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 300px; color: var(--muted);
+      text-align: center; padding: 40px;
+    }
+    .idle-state .idle-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+    .idle-state .idle-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+    .idle-state .idle-sub { font-size: 13px; line-height: 1.5; }
+
+    /* ── Features Strip ─────────────────────────────────────────────────── */
+    .features {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 80px;
+    }
+    @media (max-width: 640px) { .features { grid-template-columns: 1fr; } }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: var(--teal); }
+    .feature-icon { font-size: 28px; margin-bottom: 12px; }
+    .feature-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .feature-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* ── CTA ───────────────────────────────────────────────────────────── */
+    .cta-section {
+      text-align: center; padding: 60px 0 100px;
+      border-top: 1px solid var(--border);
+    }
+    .cta-title { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
+    .cta-sub { color: var(--muted); margin-bottom: 32px; }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 32px;
+      background: var(--teal); color: var(--bg);
+      font-size: 15px; font-weight: 700;
+      border-radius: 12px; text-decoration: none;
+      transition: all 0.15s;
+    }
+    .cta-btn:hover { background: #00e8bb; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,212,170,0.25); }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--muted);
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--teal); }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo">Zaya <span>Agent</span></div>
+      <div class="badge">Live Demo</div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-eyebrow">Watch it think</div>
+      <h1>See Zaya<br><span class="gradient">Reason & Execute</span></h1>
+      <p class="hero-sub">
+        Pick a scenario. Hit run. Watch the agent think in real-time — chain-of-thought reasoning, tool calls, and final output, all streamed live.
+      </p>
+    </section>
+
+    <!-- Playground -->
+    <div class="playground">
+      <!-- Scenario picker -->
+      <div class="scenario-panel">
+        <div class="panel-title">Choose a scenario</div>
+        <div class="scenario-list" id="scenarioList"></div>
+      </div>
+
+      <!-- Demo area -->
+      <div class="demo-area">
+        <div class="prompt-box">
+          <div class="prompt-header">
+            <span class="prompt-label">Your prompt</span>
+            <select class="model-select" id="modelSelect">
+              <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4</option>
+              <option value="minimax/minimax-m2.7">MiniMax M2.7</option>
+              <option value="openai/gpt-4o">GPT-4o</option>
+            </select>
+          </div>
+          <textarea class="prompt-textarea" id="promptInput" placeholder="Describe what you want Zaya to do..."></textarea>
+          <div class="prompt-actions">
+            <button class="run-btn" id="runBtn" onclick="runDemo()">
+              <span class="spinner"></span>
+              <span class="btn-text">▶ Run Zaya</span>
+              <span class="running-text">Thinking...</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="output-box">
+          <div class="output-header">
+            <div class="output-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="output-title">zaya — live demo</span>
+            <span class="output-status idle" id="outputStatus">idle</span>
+          </div>
+          <div class="output-body" id="outputBody">
+            <div class="idle-state">
+              <div class="idle-icon">⚡</div>
+              <div class="idle-title">Ready to run</div>
+              <div class="idle-sub">Select a scenario on the left and hit Run Zaya,<br>or edit the prompt and go.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">Chain-of-Thought</div>
+        <div class="feature-desc">Every decision is visible — Zaya shows its reasoning before acting, not just the final answer.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔧</div>
+        <div class="feature-title">Tool Execution</div>
+        <div class="feature-desc">Web search, terminal, file system, browser automation — tools called in real-time with visible output.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📡</div>
+        <div class="feature-title">Streaming Output</div>
+        <div class="feature-desc">Tokens arrive as they're generated. Watch the answer form, word by word, in real-time.</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <div class="cta-title">Ready to build?</div>
+      <p class="cta-sub">Install Zaya Agent and run it on your own infrastructure.</p>
+      <a href="https://github.com/xia-labs/zaya-agent" class="cta-btn" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <span>Built by <a href="https://xialabs.ai" target="_blank" rel="noopener">Xia Labs</a> · MIT License · 2026</span>
+      <span><a href="https://github.com/xia-labs/zaya-agent" target="_blank" rel="noopener">GitHub</a> · <a href="https://xialabs.ai" target="_blank" rel="noopener">xialabs.ai</a></span>
+    </footer>
+  </div>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────────────
+    let activeScenario = null;
+    let abortController = null;
+    let isRunning = false;
+
+    // ── Load scenarios ───────────────────────────────────────────────────────
+    async function loadScenarios() {
+      try {
+        const res = await fetch('/scenarios');
+        const scenarios = await res.json();
+
+        const list = document.getElementById('scenarioList');
+        list.innerHTML = '';
+
+        Object.entries(scenarios).forEach(([key, sc]) => {
+          const btn = document.createElement('button');
+          btn.className = 'scenario-btn';
+          btn.dataset.key = key;
+          btn.onclick = () => selectScenario(key, sc, btn);
+
+          const toolsHtml = sc.tools.map(t =>
+            `<span class="sc-tool-tag">${t}</span>`
+          ).join('');
+
+          btn.innerHTML = `
+            <span class="emoji">${sc.emoji}</span>
+            <div class="info">
+              <div class="sc-title">${sc.title}</div>
+              <div class="sc-desc">${sc.description}</div>
+              ${sc.tools.length ? `<div class="sc-tools">${toolsHtml}</div>` : ''}
+            </div>
+          `;
+          list.appendChild(btn);
+        });
+
+        // Auto-select first
+        const firstKey = Object.keys(scenarios)[0];
+        const firstSc = scenarios[firstKey];
+        const firstBtn = list.querySelector('.scenario-btn');
+        selectScenario(firstKey, firstSc, firstBtn);
+
+      } catch (e) {
+        console.error('Failed to load scenarios:', e);
+      }
+    }
+
+    function selectScenario(key, sc, btn) {
+      document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeScenario = { key, ...sc };
+      document.getElementById('promptInput').value = sc.prompt;
+    }
+
+    // ── Run demo ─────────────────────────────────────────────────────────────
+    async function runDemo() {
+      const prompt = document.getElementById('promptInput').value.trim();
+      const model = document.getElementById('modelSelect').value;
+
+      if (!prompt) { alert('Enter a prompt first!'); return; }
+      if (isRunning) { stopDemo(); return; }
+
+      startDemo(prompt, model);
+    }
+
+    function startDemo(prompt, model) {
+      isRunning = true;
+      abortController = new AbortController();
+
+      const btn = document.getElementById('runBtn');
+      btn.classList.add('running');
+      btn.disabled = true;
+
+      const status = document.getElementById('outputStatus');
+      status.className = 'output-status live';
+      status.textContent = '● live';
+
+      const body = document.getElementById('outputBody');
+      body.innerHTML = '';
+
+      const promptDisplay = document.createElement('div');
+      promptDisplay.className = 'msg text';
+      promptDisplay.innerHTML = `<p><strong style="color:var(--muted);font-size:11px;">prompt:</strong> <em>${escapeHtml(prompt)}</em></p><hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">`;
+      body.appendChild(promptDisplay);
+      scrollToBottom();
+
+      let buffer = '';
+
+      fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, model }),
+        signal: abortController.signal,
+      })
+      .then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+
+        function read() {
+          reader.read().then(({ done, value }) => {
+            if (done) { finishDemo(); return; }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) processLine(line);
+            scrollToBottom();
+            read();
+          }).catch(e => { if (e.name !== 'AbortError') showError(e); finishDemo(); });
+        }
+        read();
+      })
+      .catch(e => { if (e.name !== 'AbortError') showError(e); finishDemo(); });
+    }
+
+    function processLine(raw) {
+      if (!raw.trim() || !raw.startsWith('{')) return;
+      let msg;
+      try { msg = JSON.parse(raw); } catch { return; }
+
+      const body = document.getElementById('outputBody');
+      if (!body) return;
+
+      if (msg.type === 'thinking') {
+        appendThinking(msg.content);
+      } else if (msg.type === 'tool_start') {
+        appendToolStart(msg.tool, msg.input);
+      } else if (msg.type === 'tool_end') {
+        appendToolEnd(msg.tool, msg.output);
+      } else if (msg.type === 'text') {
+        appendText(msg.content);
+      } else if (msg.type === 'error') {
+        showError(new Error(msg.content));
+      }
+    }
+
+    function appendThinking(content) {
+      const body = document.getElementById('outputBody');
+      const el = document.createElement('div');
+      el.className = 'msg thinking';
+      el.innerHTML = `
+        <div class="msg-label">
+          <span class="thinking-dots"><span></span><span></span><span></span></span>
+          thinking
+        </div>
+        <div class="msg-content">${formatContent(content)}</div>
+      `;
+      body.appendChild(el);
+    }
+
+    function appendToolStart(tool, input) {
+      const body = document.getElementById('outputBody');
+      const icons = { web_search: '🌐', terminal: '🖥️', file_search: '📁', code_execution: '⚡', image_generation: '🎨', video_generate: '🎬' };
+      const el = document.createElement('div');
+      el.className = 'msg tool-start';
+      el.innerHTML = `
+        <div class="msg-label">
+          <span class="tool-icon">${icons[tool] || '🔧'}</span>
+          calling → ${tool}
+        </div>
+        <div class="msg-content"><pre><code>${escapeHtml(input)}</code></pre></div>
+      `;
+      body.appendChild(el);
+    }
+
+    function appendToolEnd(tool, output) {
+      const body = document.getElementById('outputBody');
+      const icons = { web_search: '🌐', terminal: '🖥️', file_search: '📁', code_execution: '⚡', image_generation: '🎨', video_generate: '🎬' };
+      const el = document.createElement('div');
+      el.className = 'msg tool-end';
+      el.innerHTML = `
+        <div class="msg-label">
+          <span class="tool-icon">${icons[tool] || '🔧'}</span>
+          ${tool} → output
+        </div>
+        <div class="msg-content"><pre><code>${escapeHtml(truncate(output, 400))}</code></pre></div>
+      `;
+      body.appendChild(el);
+    }
+
+    function appendText(content) {
+      const body = document.getElementById('outputBody');
+      const el = document.createElement('div');
+      el.className = 'msg text';
+      el.innerHTML = formatContent(content);
+      body.appendChild(el);
+    }
+
+    function finishDemo() {
+      isRunning = false;
+      const btn = document.getElementById('runBtn');
+      btn.classList.remove('running');
+      btn.disabled = false;
+
+      const status = document.getElementById('outputStatus');
+      status.className = 'output-status done';
+      status.textContent = '✓ done';
+
+      const body = document.getElementById('outputBody');
+      const done = document.createElement('div');
+      done.className = 'msg done-msg';
+      done.innerHTML = '<div class="done-icon">✨</div>Task complete. Select a new scenario or tweak the prompt.';
+      body.appendChild(done);
+      scrollToBottom();
+    }
+
+    function stopDemo() {
+      if (abortController) abortController.abort();
+      finishDemo();
+    }
+
+    function showError(e) {
+      const body = document.getElementById('outputBody');
+      const el = document.createElement('div');
+      el.className = 'msg error';
+      el.textContent = 'Error: ' + e.message;
+      body.appendChild(el);
+    }
+
+    // ── Utils ────────────────────────────────────────────────────────────────
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function truncate(str, len) {
+      return str.length > len ? str.slice(0, len) + '…' : str;
+    }
+
+    function scrollToBottom() {
+      const body = document.getElementById('outputBody');
+      body.scrollTop = body.scrollHeight;
+    }
+
+    function formatContent(text) {
+      // Very light markdown-like rendering
+      return text
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^/, '<p>')
+        .replace(/$/, '</p>');
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    loadScenarios();
+  </script>
+</body>
+</html>

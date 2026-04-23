@@ -6,7 +6,7 @@
 const PLATFORMS = {
   linux: {
     command:
-      "curl -fsSL https://raw.githubusercontent.com/NousResearch/zaya-agent/main/scripts/install.sh | bash",
+      "curl -fsSL https://raw.githubusercontent.com/xia-labs/zaya-agent/main/scripts/install.sh | bash",
     prompt: "$",
     note: "Works on Linux, macOS & WSL2 · No prerequisites · Installs everything automatically",
     stepNote:
@@ -223,7 +223,7 @@ const demoSequence = [
   { type: "prompt", text: "❯ " },
   {
     type: "type",
-    text: "Review the PR at NousResearch/zaya-agent#42 and fix any issues",
+    text: "Review the PR at xia-labs/zaya-agent#42 and fix any issues",
     delay: 30,
   },
   { type: "pause", ms: 600 },

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "name": "zaya-agent",
   "display_name": "Zaya Agent",
-  "description": "AI agent by Nous Research with 90+ tools, persistent memory, and multi-platform support",
+  "description": "Zaya by Xia Labs — AI agent with persistent memory, anti-sycophancy, and multi-platform support. Built on Hermes Agent (MIT).",
   "icon": "icon.svg",
   "distribution": {
     "type": "command",

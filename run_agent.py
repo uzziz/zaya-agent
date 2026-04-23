@@ -52,6 +52,18 @@ try:
 except Exception:
     _empathy_engine = None
 
+# Inner Circle — Accumulated Psychological Model
+try:
+    from agent.inner_circle import (
+        load_profile_on_startup,
+        add_empathy_read,
+        check_decision_context,
+        get_maturity,
+    )
+    _inner_circle_available = True
+except Exception:
+    _inner_circle_available = False
+
 # Load .env from ~/.zaya/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
 from zaya_cli.env_loader import load_zaya_dotenv
@@ -7952,6 +7964,23 @@ class AIAgent:
         if not self.quiet_mode:
             self._safe_print(f"💬 Starting conversation: '{user_message[:60]}{'...' if len(user_message) > 60 else ''}'")
         
+        # ── Inner Circle — Load Accumulated Profile ──
+        # Before anything else, load what Zaya already knows about this person.
+        # This is injected into the system prompt so she operates from accumulated
+        # understanding, not just the current conversation.
+        _user_id = getattr(self, "_user_id", None) or "default"
+        if _inner_circle_available and hasattr(self, "_user_id") and self._user_id:
+            try:
+                _ic_summary = load_profile_on_startup(self._user_id)
+                if _ic_summary:
+                    _ic_msg = {
+                        "role": "system",
+                        "content": _ic_summary
+                    }
+                    messages.insert(1, _ic_msg)
+            except Exception:
+                pass
+        
         # ── Empathy Engine — Layer 6: Subtext Inference ──
         # Run dissonance detection on the full message history.
         # Inject empathic guidance into the conversation if gap is detected.
@@ -7973,6 +8002,31 @@ class AIAgent:
                         )
                     }
                     messages.insert(1, _empathy_msg)
+                    # ── Inner Circle — Save Empathy Read ──
+                    # Every significant read gets permanently stored in the user's
+                    # psychological profile. After 5 reads, patterns are detected.
+                    # After 10, a full summary is generated.
+                    if _inner_circle_available and self._user_id:
+                        try:
+                            # Derive tags from behavioral roots + signal patterns
+                            _behavioral = _profile.subtext.behavioral_roots or []
+                            _signals = _profile.dissonance.signals or []
+                            _derived_tags = list(set(
+                                [b.lower() for b in _behavioral[:3]] +
+                                [s.lower() for s in _signals[:3]]
+                            ))
+                            add_empathy_read(
+                                user_id=self._user_id,
+                                surface_message=user_message[:200],
+                                dissonance=_profile.dissonance.dissonance_level.value,
+                                surface=_profile.dissonance.surface_emotion.value,
+                                inferred=_profile.dissonance.inferred_state.value,
+                                subtext=_profile.dissonance.subtext,
+                                tags=_derived_tags,
+                                zaya_response=_calibration.response_tone,
+                            )
+                        except Exception:
+                            pass
             except Exception:
                 pass
 
